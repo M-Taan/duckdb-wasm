@@ -40,7 +40,9 @@ class ShellRuntime {
         return await pickFiles(this.database!);
     }
     public async downloadFile(this: ShellRuntime, name: string, buffer: Uint8Array): Promise<void> {
-        const blob = new Blob([buffer]);
+        const arrayBuffer = new ArrayBuffer(buffer.byteLength);
+        new Uint8Array(arrayBuffer).set(buffer);
+        const blob = new Blob([arrayBuffer]);
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.download = name;

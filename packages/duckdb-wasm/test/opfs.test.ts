@@ -1,22 +1,13 @@
-import {
-    AsyncDuckDB,
-    AsyncDuckDBConnection,
-    ConsoleLogger,
-    DuckDBAccessMode,
-    DuckDBBundle,
-    DuckDBDataProtocol,
-    LogLevel
-} from '../src/';
+import * as duckdb from '../src/';
+import {LogLevel, ConsoleLogger, AsyncDuckDB, DuckDBAccessMode, DuckDBDataProtocol} from '../src/';
 import * as arrow from 'apache-arrow';
 
-export function testOPFS(baseDir: string, bundle: () => DuckDBBundle): void {
-    const logger = new ConsoleLogger(LogLevel.ERROR);
-
-    let db: AsyncDuckDB;
-    let conn: AsyncDuckDBConnection;
+export function testOPFS(baseDir: string, bundle: () => duckdb.DuckDBBundle): void {
+    let db: duckdb.AsyncDuckDB;
+    let conn: duckdb.AsyncDuckDBConnection;
 
     beforeAll(async () => {
-        await removeFiles();
+        removeFiles();
     });
 
     afterAll(async () => {
@@ -32,11 +23,11 @@ export function testOPFS(baseDir: string, bundle: () => DuckDBBundle): void {
     beforeEach(async () => {
         await removeFiles();
         const worker = new Worker(bundle().mainWorker!);
-        db = new AsyncDuckDB(logger, worker);
+        db = new duckdb.AsyncDuckDB(new duckdb.ConsoleLogger(), worker);
         await db.instantiate(bundle().mainModule, bundle().pthreadWorker);
         await db.open({
             path: 'opfs://test.db',
-            accessMode: DuckDBAccessMode.READ_WRITE
+            accessMode: duckdb.DuckDBAccessMode.READ_WRITE
         });
         conn = await db.connect();
     });
@@ -98,7 +89,7 @@ export function testOPFS(baseDir: string, bundle: () => DuckDBBundle): void {
             await db.terminate();
 
             const worker = new Worker(bundle().mainWorker!);
-            db = new AsyncDuckDB(logger, worker);
+            db = new duckdb.AsyncDuckDB(new duckdb.ConsoleLogger(), worker);
             await db.instantiate(bundle().mainModule, bundle().pthreadWorker);
             await db.open({
                 path: 'opfs://test.db',
@@ -122,7 +113,7 @@ export function testOPFS(baseDir: string, bundle: () => DuckDBBundle): void {
                 path: 'test.parquet'
             });
             //2. handle is empty object, because worker gets a File Handle using the file name.
-            await db.registerFileHandle('test.parquet', fileHandler, DuckDBDataProtocol.BROWSER_FSACCESS, true);
+            await db.registerFileHandle('test.parquet', fileHandler, duckdb.DuckDBDataProtocol.BROWSER_FSACCESS, true);
             //3. data preparation
             await conn.send(`CREATE TABLE lineitem1 AS SELECT * FROM read_parquet('test.parquet')`);
             await conn.send(`CHECKPOINT;`);
@@ -143,7 +134,7 @@ export function testOPFS(baseDir: string, bundle: () => DuckDBBundle): void {
                 path: 'datadir/test.parquet'
             });
             //2. handle is opfs file handler
-            await db.registerFileHandle('datadir/test.parquet', fileHandler, DuckDBDataProtocol.BROWSER_FSACCESS, true);
+            await db.registerFileHandle('datadir/test.parquet', fileHandler, duckdb.DuckDBDataProtocol.BROWSER_FSACCESS, true);
             //3. data preparation
             await conn.send(`CREATE TABLE lineitem1 AS SELECT * FROM read_parquet('datadir/test.parquet')`);
             await conn.send(`CHECKPOINT;`);
@@ -164,7 +155,7 @@ export function testOPFS(baseDir: string, bundle: () => DuckDBBundle): void {
                 path: 'test.parquet'
             });
             //2. handle is opfs file handler
-            await db.registerFileHandle('test.parquet', fileHandle, DuckDBDataProtocol.BROWSER_FSACCESS, true);
+            await db.registerFileHandle('test.parquet', fileHandle, duckdb.DuckDBDataProtocol.BROWSER_FSACCESS, true);
             //3. data preparation
             await conn.send(`CREATE TABLE lineitem1 AS SELECT * FROM read_parquet('test.parquet')`);
             await conn.send(`CHECKPOINT;`);
@@ -209,7 +200,7 @@ export function testOPFS(baseDir: string, bundle: () => DuckDBBundle): void {
             const opfsRoot = await navigator.storage.getDirectory();
             const fileHandler = await opfsRoot.getFileHandle('test.csv', { create: true });
             //2. handle is opfs file handler
-            await db.registerFileHandle('test.csv', fileHandler, DuckDBDataProtocol.BROWSER_FSACCESS, true);
+            await db.registerFileHandle('test.csv', fileHandler, duckdb.DuckDBDataProtocol.BROWSER_FSACCESS, true);
             //3. data preparation
             await conn.send(`CREATE TABLE zzz AS SELECT * FROM '${ baseDir }/tpch/0_01/parquet/lineitem.parquet'`);
             await conn.send(`COPY (SELECT * FROM zzz) TO 'test.csv'`);
@@ -219,7 +210,7 @@ export function testOPFS(baseDir: string, bundle: () => DuckDBBundle): void {
             await db.reset();
 
             conn = await db.connect();
-            await db.registerFileHandle('test.csv', fileHandler, DuckDBDataProtocol.BROWSER_FSACCESS, true);
+            await db.registerFileHandle('test.csv', fileHandler, duckdb.DuckDBDataProtocol.BROWSER_FSACCESS, true);
 
             const result = await conn.send(`SELECT count(*) ::INTEGER as cnt FROM 'test.csv';`);
             const batches = [];
@@ -239,9 +230,9 @@ export function testOPFS(baseDir: string, bundle: () => DuckDBBundle): void {
             const testHandle2 = await opfsRoot.getFileHandle('test2.csv', { create: true });
             const testHandle3 = await opfsRoot.getFileHandle('test3.csv', { create: true });
             //2. handle is opfs file handler
-            await db.registerFileHandle('test1.csv', testHandle1, DuckDBDataProtocol.BROWSER_FSACCESS, true);
-            await db.registerFileHandle('test2.csv', testHandle2, DuckDBDataProtocol.BROWSER_FSACCESS, true);
-            await db.registerFileHandle('test3.csv', testHandle3, DuckDBDataProtocol.BROWSER_FSACCESS, true);
+            await db.registerFileHandle('test1.csv', testHandle1, duckdb.DuckDBDataProtocol.BROWSER_FSACCESS, true);
+            await db.registerFileHandle('test2.csv', testHandle2, duckdb.DuckDBDataProtocol.BROWSER_FSACCESS, true);
+            await db.registerFileHandle('test3.csv', testHandle3, duckdb.DuckDBDataProtocol.BROWSER_FSACCESS, true);
             //3. data preparation
             await conn.send(`CREATE TABLE zzz AS SELECT * FROM "${ baseDir }/tpch/0_01/parquet/lineitem.parquet"`);
             await conn.send(`COPY (SELECT * FROM zzz) TO 'test1.csv'`);
@@ -256,9 +247,9 @@ export function testOPFS(baseDir: string, bundle: () => DuckDBBundle): void {
             await db.reset();
 
             conn = await db.connect();
-            await db.registerFileHandle('test1.csv', testHandle1, DuckDBDataProtocol.BROWSER_FSACCESS, true);
-            await db.registerFileHandle('test2.csv', testHandle2, DuckDBDataProtocol.BROWSER_FSACCESS, true);
-            await db.registerFileHandle('test3.csv', testHandle3, DuckDBDataProtocol.BROWSER_FSACCESS, true);
+            await db.registerFileHandle('test1.csv', testHandle1, duckdb.DuckDBDataProtocol.BROWSER_FSACCESS, true);
+            await db.registerFileHandle('test2.csv', testHandle2, duckdb.DuckDBDataProtocol.BROWSER_FSACCESS, true);
+            await db.registerFileHandle('test3.csv', testHandle3, duckdb.DuckDBDataProtocol.BROWSER_FSACCESS, true);
 
             {
                 const result1 = await conn.send(`SELECT count(*) ::INTEGER as cnt FROM 'test1.csv';`);
@@ -398,7 +389,7 @@ export function testOPFS(baseDir: string, bundle: () => DuckDBBundle): void {
 
     describe('Open database in OPFS', () => {
         it('should not open a non-existent DB file in read-only', async () => {
-            const logger = new duckdb.ConsoleLogger(LogLevel.ERROR);
+            const logger = new duckdb.ConsoleLogger(duckdb.LogLevel.ERROR);
             const worker = new Worker(bundle().mainWorker!);
             const db_ = new duckdb.AsyncDuckDB(logger, worker);
             await db_.instantiate(bundle().mainModule, bundle().pthreadWorker);
@@ -418,7 +409,7 @@ export function testOPFS(baseDir: string, bundle: () => DuckDBBundle): void {
         });
 
         it('should not open a non-existent DB file and mkdir in read-only', async () => {
-            const logger = new duckdb.ConsoleLogger(LogLevel.ERROR);
+            const logger = new duckdb.ConsoleLogger(duckdb.LogLevel.ERROR);
             const worker = new Worker(bundle().mainWorker!);
             const db_ = new duckdb.AsyncDuckDB(logger, worker);
             await db_.instantiate(bundle().mainModule, bundle().pthreadWorker);
@@ -433,7 +424,7 @@ export function testOPFS(baseDir: string, bundle: () => DuckDBBundle): void {
         });
 
         it('should open a non-existent DB file and mkdir in read-write', async () => {
-            const logger = new duckdb.ConsoleLogger(LogLevel.ERROR);
+            const logger = new duckdb.ConsoleLogger(duckdb.LogLevel.ERROR);
             const worker = new Worker(bundle().mainWorker!);
             const db_ = new duckdb.AsyncDuckDB(logger, worker);
             await db_.instantiate(bundle().mainModule, bundle().pthreadWorker);
@@ -448,7 +439,7 @@ export function testOPFS(baseDir: string, bundle: () => DuckDBBundle): void {
         });
 
         it('should open a non-existent DB file in read-write and create files', async () => {
-            const logger = new duckdb.ConsoleLogger(LogLevel.ERROR);
+            const logger = new duckdb.ConsoleLogger(duckdb.LogLevel.ERROR);
             const worker = new Worker(bundle().mainWorker!);
             const db_ = new duckdb.AsyncDuckDB(logger, worker);
             await db_.instantiate(bundle().mainModule, bundle().pthreadWorker);

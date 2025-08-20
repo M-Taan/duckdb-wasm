@@ -508,9 +508,9 @@ export abstract class DuckDBBindingsBase implements DuckDBBindings {
         }
         dropResponseBuffers(this.mod);
     }
-    public async prepareFileHandle(fileName: string, protocol: DuckDBDataProtocol, accessMode?: DuckDBAccessMode): Promise<void> {
+    public async prepareFileHandle(fileName: string, protocol: DuckDBDataProtocol, accessMode?: DuckDBAccessMode, multiWindowMode:boolean = false): Promise<void> {
         if (protocol === DuckDBDataProtocol.BROWSER_FSACCESS && this._runtime.prepareFileHandles) {
-            const list = await this._runtime.prepareFileHandles([fileName], DuckDBDataProtocol.BROWSER_FSACCESS, accessMode);
+            const list = await this._runtime.prepareFileHandles([fileName], DuckDBDataProtocol.BROWSER_FSACCESS, accessMode, multiWindowMode);
             for (const item of list) {
                 const { handle, path: filePath, fromCached } = item;
                 if (!fromCached && handle.getSize()) {
@@ -522,9 +522,9 @@ export abstract class DuckDBBindingsBase implements DuckDBBindings {
         throw new Error(`prepareFileHandle: unsupported protocol ${protocol}`);
     }
     /** Prepare a file handle that could only be acquired aschronously */
-    public async prepareDBFileHandle(path: string, protocol: DuckDBDataProtocol, accessMode?: DuckDBAccessMode): Promise<void> {
+    public async prepareDBFileHandle(path: string, protocol: DuckDBDataProtocol, accessMode?: DuckDBAccessMode, multiWindowMode:boolean = false): Promise<void> {
         if (protocol === DuckDBDataProtocol.BROWSER_FSACCESS && this._runtime.prepareDBFileHandle) {
-            const list = await this._runtime.prepareDBFileHandle(path, DuckDBDataProtocol.BROWSER_FSACCESS, accessMode);
+            const list = await this._runtime.prepareDBFileHandle(path, DuckDBDataProtocol.BROWSER_FSACCESS, accessMode, multiWindowMode);
             for (const item of list) {
                 const { handle, path: filePath, fromCached } = item;
                 if (!fromCached && handle.getSize()) {
@@ -622,7 +622,7 @@ export abstract class DuckDBBindingsBase implements DuckDBBindings {
         dropResponseBuffers(this.mod);
     }
     /** Drop files */
-    public dropFiles(names?:string[]): void {
+        public dropFiles(names?:string[]): void {
         const pointers:number[] = [];
         let pointerOfArray:number = -1;
         try {
@@ -668,8 +668,7 @@ export abstract class DuckDBBindingsBase implements DuckDBBindings {
                 this.mod._free(pointerOfArray);
             }
         }
-    }
-    /** Flush all files */
+    }/** Flush all files */
     public flushFiles(): void {
         this.mod.ccall('duckdb_web_flush_files', null, [], []);
     }
@@ -694,9 +693,9 @@ export abstract class DuckDBBindingsBase implements DuckDBBindings {
         return copy;
     }
     /** Enable tracking of file statistics */
-    public async registerOPFSFileName(file: string): Promise<void> {
+    public async registerOPFSFileName(file: string, accessMode:DuckDBAccessMode = DuckDBAccessMode.READ_WRITE, multiWindowMode:boolean = false): Promise<void> {
         if (file.startsWith('opfs://')) {
-            return this.prepareFileHandle(file, DuckDBDataProtocol.BROWSER_FSACCESS);
+            return await this.prepareFileHandle(file, DuckDBDataProtocol.BROWSER_FSACCESS, accessMode, multiWindowMode);
         } else {
             throw new Error('Not an OPFS file name: ' + file);
         }

@@ -74,7 +74,7 @@ export const NODE_RUNTIME: DuckDBRuntime & {
             switch (file?.dataProtocol) {
                 // Native file
                 case DuckDBDataProtocol.NODE_FS: {
-                    let openFlags = fs.constants.O_RDONLY;
+			                    let openFlags = fs.constants.O_RDONLY;
                     if (flags & FileFlags.FILE_FLAGS_WRITE) {
                         openFlags = fs.constants.O_RDWR;
                     }
@@ -103,7 +103,7 @@ export const NODE_RUNTIME: DuckDBRuntime & {
                     const result = mod._malloc(2 * 8);
                     mod.HEAPF64[(result >> 3) + 0] = +fileSize;
                     mod.HEAPF64[(result >> 3) + 1] = 0;
-                    return result;
+return result;
                 }
                 case DuckDBDataProtocol.BROWSER_FILEREADER:
                 case DuckDBDataProtocol.BROWSER_FSACCESS:
@@ -243,7 +243,7 @@ export const NODE_RUNTIME: DuckDBRuntime & {
 
     checkDirectory: (mod: DuckDBModule, pathPtr: number, pathLen: number) => {
         try {
-            const path = decodeText(mod.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
+            const path = decodeText(new Uint8Array(mod.HEAPU8.subarray(pathPtr, pathPtr + pathLen)));
             return fs.existsSync(path);
         } catch (e: any) {
             console.log(e);
@@ -253,7 +253,7 @@ export const NODE_RUNTIME: DuckDBRuntime & {
     },
     createDirectory: (mod: DuckDBModule, pathPtr: number, pathLen: number) => {
         try {
-            const path = decodeText(mod.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
+            const path = decodeText(new Uint8Array(mod.HEAPU8.subarray(pathPtr, pathPtr + pathLen)));
             return fs.mkdirSync(path);
         } catch (e: any) {
             console.log(e);
@@ -263,7 +263,7 @@ export const NODE_RUNTIME: DuckDBRuntime & {
     },
     removeDirectory: (mod: DuckDBModule, pathPtr: number, pathLen: number) => {
         try {
-            const path = decodeText(mod.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
+            const path = decodeText(new Uint8Array(mod.HEAPU8.subarray(pathPtr, pathPtr + pathLen)));
             return fs.rmdirSync(path);
         } catch (e: any) {
             console.log(e);
@@ -306,7 +306,7 @@ export const NODE_RUNTIME: DuckDBRuntime & {
     },
     checkFile: (mod: DuckDBModule, pathPtr: number, pathLen: number) => {
         try {
-            const path = decodeText(mod.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
+            const path = decodeText(new Uint8Array(mod.HEAPU8.subarray(pathPtr, pathPtr + pathLen)));
             return fs.existsSync(path);
         } catch (e: any) {
             console.log(e);
@@ -316,7 +316,7 @@ export const NODE_RUNTIME: DuckDBRuntime & {
     },
     removeFile: (mod: DuckDBModule, pathPtr: number, pathLen: number) => {
         try {
-            const path = decodeText(mod.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
+            const path = decodeText(new Uint8Array(mod.HEAPU8.subarray(pathPtr, pathPtr + pathLen)));
             return fs.rmSync(path);
         } catch (e: any) {
             console.log(e);

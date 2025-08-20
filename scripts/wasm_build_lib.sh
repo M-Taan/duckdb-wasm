@@ -90,13 +90,36 @@ emmake make \
     duckdb_wasm
 fi
 
-js-beautify -v || npm install -g js-beautify
-js-beautify ${BUILD_DIR}/duckdb_wasm.js > ${BUILD_DIR}/beauty.js
-sed 's/case \"__table_base\"/case \"getTempRet0\": return getTempRet0;   case \"__table_base\"/g' ${BUILD_DIR}/beauty.js > ${BUILD_DIR}/beauty_sed.js
-cp ${BUILD_DIR}/beauty_sed.js ${BUILD_DIR}/beauty.js
-cp ${BUILD_DIR}/beauty.js ${BUILD_DIR}/duckdb_wasm.js
-awk '{gsub(/get\(stubs, prop\) \{/,"get(stubs,prop) { if (prop.startsWith(\"invoke_\")) {return createDyncallWrapper(prop.substring(7));}"); print}' ${BUILD_DIR}/beauty.js > ${BUILD_DIR}/beauty2.js
-awk '!(/var .*wasmExports\[/ || /var [_a-z0-9A-Z]+ = Module\[\"[_a-z0-9A-Z]+\"\] = [0-9]+;/) || /var _duckdb_web/ || /var _main/ || /var _calloc/ || /var _malloc/ || /var _free/ || /var stack/ || /var ___dl_seterr/ || /var __em/ || /var _em/ || /var _pthread/' ${BUILD_DIR}/beauty2.js > ${BUILD_DIR}/duckdb_wasm.js
+# Check if js-beautify is available, if not try to install locally or skip
+if ! command -v js-beautify &> /dev/null; then
+    echo "js-beautify not found, attempting to install locally..."
+    if npm list js-beautify --depth=0 &> /dev/null; then
+        echo "js-beautify found in local node_modules"
+        JS_BEAUTIFY_CMD="npx js-beautify"
+    else
+        echo "js-beautify not available, attempting to install locally..."
+        if npm install js-beautify &> /dev/null; then
+            JS_BEAUTIFY_CMD="npx js-beautify"
+        else
+            echo "Failed to install js-beautify, skipping beautification step"
+            JS_BEAUTIFY_CMD=""
+        fi
+    fi
+else
+    JS_BEAUTIFY_CMD="js-beautify"
+fi
+
+if [ -n "${JS_BEAUTIFY_CMD}" ]; then
+    ${JS_BEAUTIFY_CMD} -v || npm install -g js-beautify
+    ${JS_BEAUTIFY_CMD} ${BUILD_DIR}/duckdb_wasm.js > ${BUILD_DIR}/beauty.js
+    sed 's/case \"__table_base\"/case \"getTempRet0\": return getTempRet0;   case \"__table_base\"/g' ${BUILD_DIR}/beauty.js > ${BUILD_DIR}/beauty_sed.js
+    cp ${BUILD_DIR}/beauty_sed.js ${BUILD_DIR}/beauty.js
+    cp ${BUILD_DIR}/beauty.js ${BUILD_DIR}/duckdb_wasm.js
+    awk '{gsub(/get\(stubs, prop\) \{/,"get(stubs,prop) { if (prop.startsWith(\"invoke_\")) {return createDyncallWrapper(prop.substring(7));}"); print}' ${BUILD_DIR}/beauty.js > ${BUILD_DIR}/beauty2.js
+    awk '!(/var .*wasmExports\[/ || /var [_a-z0-9A-Z]+ = Module\[\"[_a-z0-9A-Z]+\"\] = [0-9]+;/) || /var _duckdb_web/ || /var _main/ || /var _calloc/ || /var _malloc/ || /var _free/ || /var stack/ || /var ___dl_seterr/ || /var __em/ || /var _em/ || /var _pthread/' ${BUILD_DIR}/beauty2.js > ${BUILD_DIR}/duckdb_wasm.js
+else
+    echo "Skipping js-beautify step"
+fi
 
 cp ${BUILD_DIR}/duckdb_wasm.wasm ${DUCKDB_LIB_DIR}/duckdb${SUFFIX}.wasm
 sed \

@@ -1,5 +1,5 @@
-import { DuckDBAccessMode } from './config';
 import { DuckDBModule } from './duckdb_module';
+import { DuckDBAccessMode } from './config';
 import { UDFFunction } from './udf_function';
 import * as udf_rt from './udf_runtime';
 
@@ -32,7 +32,8 @@ export function copyBuffer(mod: DuckDBModule, begin: number, length: number): Ui
 
 /** Decode a string */
 export function readString(mod: DuckDBModule, begin: number, length: number): string {
-    return decodeText(mod.HEAPU8.subarray(begin, begin + length));
+    const subarray = mod.HEAPU8.subarray(begin, begin + length);
+    return decodeText(new Uint8Array(subarray));
 }
 
 /** The data protocol */
@@ -44,7 +45,6 @@ export enum DuckDBDataProtocol {
     HTTP = 4,
     S3 = 5,
 }
-
 /** File flags for opening files*/
 export enum FileFlags {
     //! Open file with read access
@@ -171,8 +171,8 @@ export interface DuckDBRuntime {
 
     // Prepare a file handle that could only be acquired aschronously
     prepareFileHandle?: (path: string, protocol: DuckDBDataProtocol) => Promise<PreparedDBFileHandle[]>;
-    prepareFileHandles?: (path: string[], protocol: DuckDBDataProtocol, accessMode?: DuckDBAccessMode) => Promise<PreparedDBFileHandle[]>;
-    prepareDBFileHandle?: (path: string, protocol: DuckDBDataProtocol, accessMode?: DuckDBAccessMode) => Promise<PreparedDBFileHandle[]>;
+    prepareFileHandles?: (path: string[], protocol: DuckDBDataProtocol, accessMode?: DuckDBAccessMode, multiWindowMode?: boolean) => Promise<PreparedDBFileHandle[]>;
+    prepareDBFileHandle?: (path: string, protocol: DuckDBDataProtocol, accessMode?: DuckDBAccessMode, multiWindowMode?: boolean) => Promise<PreparedDBFileHandle[]>;
 
     // Internal API - experimental
     progressUpdate(final: number, percentage: number, iteration: number): void;
